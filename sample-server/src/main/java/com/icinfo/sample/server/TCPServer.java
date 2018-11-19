@@ -6,7 +6,6 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -42,6 +41,7 @@ public class TCPServer {
         for (ClientHandler clientHandler : clientHandlerList) {
             clientHandler.exit();
         }
+        clientHandlerList.clear();
     }
 
     public void broadcast(String str) {
@@ -75,7 +75,22 @@ public class TCPServer {
                 }
 
 
+                try {
+                    // 客户端构建异步线程
+                    ClientHandler clientHandler = new ClientHandler(client,
+                            handler -> clientHandlerList.remove(handler));
+                    // 读取并打印数据
+                    clientHandler.readToPrint();
+                    clientHandlerList.add(clientHandler);
+
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    System.out.println("客户端连接异常：" + e.getMessage());
+                }
+
+
             } while (!done);
+
         }
 
         void exit() {
