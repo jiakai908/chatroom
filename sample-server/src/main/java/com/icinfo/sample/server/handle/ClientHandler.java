@@ -2,11 +2,8 @@ package com.icinfo.sample.server.handle;
 
 import com.icinfo.clink.utils.CloseUtils;
 
-import javax.swing.plaf.SliderUI;
 import java.io.*;
-import java.net.Socket;
 import java.nio.ByteBuffer;
-import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
