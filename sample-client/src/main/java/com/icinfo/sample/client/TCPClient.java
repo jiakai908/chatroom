@@ -7,8 +7,27 @@ import java.io.*;
 import java.net.*;
 
 public class TCPClient {
+    private final Socket socket;
+    private final ReadHandler readHandler;
+    private final PrintStream printStream;
 
-    public static void linkWith(ServerInfo serverInfo) throws IOException {
+    public TCPClient(Socket socket, ReadHandler readHandler) throws IOException {
+        this.socket = socket;
+        this.readHandler = readHandler;
+        this.printStream = new PrintStream(socket.getOutputStream());
+    }
+
+    public void exit(){
+        readHandler.exit();
+        CloseUtils.close(printStream);
+        CloseUtils.close(socket);
+    }
+
+    public void send(String msg){
+        printStream.println(msg);
+    }
+
+    public static TCPClient startWith(ServerInfo serverInfo) throws IOException {
         Socket socket = new Socket();
         socket.setSoTimeout(3000);
 
@@ -20,40 +39,15 @@ public class TCPClient {
         try {
             ReadHandler readHandler = new ReadHandler(socket.getInputStream());
             readHandler.start();
-
-            //接收数据
-            write(socket);
-
-            //退出操作
-            readHandler.exit();
+            return new TCPClient(socket,readHandler);
         } catch (IOException e) {
-            System.out.println("异常关闭");
-        } finally {
-            socket.close();
-            System.out.println("客户端已退出～");
+            System.out.println("连接异常");
+            CloseUtils.close(socket);
         }
-
+        return null;
     }
 
-    private static void write(Socket client) throws IOException {
-        InputStream in = System.in;
-        BufferedReader input = new BufferedReader(new InputStreamReader(in));
 
-        //得到socket输出流
-        OutputStream outputStream = client.getOutputStream();
-        PrintStream printStream = new PrintStream(outputStream);
-
-        do {
-            String str = input.readLine();
-            printStream.println(str);
-
-            if ("00bye00".equalsIgnoreCase(str)){
-                break;
-            }
-        }while (true);
-
-        printStream.close();
-    }
 
     private static class ReadHandler extends Thread {
         private boolean done = false;
