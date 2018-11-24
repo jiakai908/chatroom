@@ -17,14 +17,20 @@ public class ClientHandler {
     private final Socket socket;
     private final ClientReadHandler readHandler;
     private final ClientWriteHandler writeHandler;
-    private final CloseNotify closeNotify;
+    private final ClientHandlerCallback clientHandlerCallback;
+    private final String clientInfo;
 
-    public ClientHandler(Socket socket, CloseNotify closeNotify) throws IOException {
+    public ClientHandler(Socket socket, ClientHandlerCallback clientHandlerCallback) throws IOException {
         this.socket = socket;
         this.readHandler = new ClientReadHandler(socket.getInputStream());
         this.writeHandler = new ClientWriteHandler(socket.getOutputStream());
-        this.closeNotify = closeNotify;
+        this.clientHandlerCallback = clientHandlerCallback;
+        this.clientInfo = "A[" + socket.getInetAddress().getHostAddress()
+                + "] P[" + socket.getPort() + "]";
+        System.out.println("新客户端连接：" + clientInfo);
     }
+
+    public String getClientInfo(){return clientInfo;}
 
     public void send(String str) {
         writeHandler.send(str);
@@ -36,7 +42,7 @@ public class ClientHandler {
 
     private void exitBySelf() {
         exit();
-        closeNotify.onSelfClosed(this);
+        clientHandlerCallback.onSelfClosed(this);
     }
 
     public void exit() {
@@ -47,8 +53,11 @@ public class ClientHandler {
                 " P:" + socket.getPort());
     }
 
-    public interface CloseNotify {
+    public interface ClientHandlerCallback {
+        //自身关闭通知
         void onSelfClosed(ClientHandler clientHandler);
+        //收到消息时通知
+        void onMessageArried(ClientHandler clientHandler, String msg);
     }
 
 
@@ -74,7 +83,7 @@ public class ClientHandler {
                         ClientHandler.this.exitBySelf();
                         break;
                     }
-                    System.out.println(str);
+                    clientHandlerCallback.onMessageArried(ClientHandler.this,str);
                 } while (!done);
             } catch (Exception e) {
                 if (!done) {
@@ -93,7 +102,7 @@ public class ClientHandler {
         }
     }
 
-    private class ClientWriteHandler extends Thread {
+    private class ClientWriteHandler {
         private boolean done = false;
         private final PrintStream printStream;
         private final ExecutorService executorService;
@@ -110,6 +119,9 @@ public class ClientHandler {
         }
 
         void send(String str) {
+            if (done){
+                return;
+            }
             executorService.execute(new WriteRunnable(str));
         }
 
